@@ -1,8 +1,8 @@
 # PSQL Database Backup to AWS S3
 
-Perform rotating encrypted backups of a PostgreSQL database using AWS S3 and Linux cron or Kubernetes CronJob. 
+Perform encrypted rotating backups of a PostgreSQL database using AWS S3 and Linux cron or Kubernetes CronJob. 
 
-## Setup
+## Setup AWS
 
 ### Create AWS S3 Bucket
 
@@ -36,35 +36,15 @@ The script requires, list, put, and delete access on the s3 bucket. So the S3 po
 }
 ```
 
-### Install Dependencies
+## Create PGP Keys
 
-Install script dependencies to VM or Docker image using package manager.
-#### GPG
-
-Install [GPG](https://gnupg.org/) to encrypt backup files:
+On a separate (ideally air-gapped) machine, install GPG so encryption keys can be generated:
 
 ```sh
 apk add gnupg
 ```
 
-### AWS-CLI
-
-Install AWS CLI tool to transfer backup to AWS S3:
-
-```sh
-apk add aws-cli
-```
-
-#### date
-
-Ensure date is GNU core utilities date, not included in alpine linux by default:
-
-```sh
-apk add coreutils
-```
-### Create PGP Keys
-
-On a separate (ideally air-gapped) machine, create a public/private pair of GPG keys using [GPG](https://gnupg.org/). Using a public key to encrypt the backup on the server will help prevent the database backup being compromised if the environment variables in the backup script are leaked.
+Then create a public/private pair of GPG keys using [GPG](https://gnupg.org/). Using a public key to encrypt the backup on the server will help prevent the database backup being compromised if the environment variables in the backup script are leaked.
 
 Generate key using email for ID:
 ```sh
@@ -83,15 +63,7 @@ gpg --armor --export <your-email> | cat -e | sed 's/\$/\\n/g'
 
 Export secret key to file and move to [secure storage](https://lwn.net/Articles/734767/).
 
-### Copy script to system
-
-Copy script to system and make sure it is executable for the crontab user chmod:
-
-```sh
-chmod 744 <filename>
-```
-
-### Setup
+## Add to System
 
 Depending on your deployment setup, there will different ways run the backup script on a regular interval. 
 
@@ -100,7 +72,42 @@ Here are the setup methods for two typical deployment types:
 - Traditional VM - Linux cron
 - Kubernetes - CronJob
 
-The backup script gets its configuration from environment variables. The variables required can be seen in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
+### Traditional VM
+
+#### Copy script to system
+
+Copy script to system and make sure it is executable for the crontab user chmod:
+
+```sh
+chmod 744 <filename>
+```
+
+#### Install Dependencies
+
+Install script dependencies on VM using package manager.
+##### GPG
+
+Install [GPG](https://gnupg.org/) to encrypt backup files:
+
+```sh
+apk add gnupg
+```
+
+##### AWS-CLI
+
+Install AWS CLI tool to transfer backup to AWS S3:
+
+```sh
+apk add aws-cli
+```
+
+##### date
+
+Ensure date is GNU core utilities date, not included in alpine linux (busybox) by default:
+
+```sh
+apk add coreutils
+```
 
 #### Linux cron
 
@@ -108,21 +115,25 @@ cron is a time-based job scheduler built into Linux, and it can be used to run p
 
 ##### Config
 
-Store config in environment variables and make sure they are included in your cronjob environment.
+The backup script gets its configuration from environment variables. The variables required can be seen in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
+
+cron jobs do not inherit the same environment as a job run from the command line, instead their default environment is from ```/etc/environment```, read more about why in [this IBM article](https://www.ibm.com/support/pages/cron-environment-and-cron-job-failures). Therefore, the environment variables required for the backup script's config need to be loaded specially in the job definition.
 
 One way to do this <i>source<i> a shell script using the ["dot" command](https://tldp.org/LDP/abs/html/special-chars.html#DOTREF) in the crontab.
 
 First create the script containing the environment exports, example in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
 
-Then ensure it can only be read by the crontab user:
+Since it contains credentials, ensure it can only be read by the crontab user:
 
 ```sh
-chmod 700 db-backup.env
+chmod 700 psql-backup-s3.env
 ```
 
-##### Create the CronJob
+It can then be sourced before the backup job in the crontab as shown below.
 
-Add a new cronjob using crontab to load the environment variables and run the backup script periodically. For example, to run the backup daily at 3.30am:
+##### Create the cron job
+
+Add a new cron job using crontab. The job should periodically load the environment variables and then run the backup script. For example, to run the backup daily at 3.30am:
 
 ```sh
 crontab -e
@@ -134,11 +145,11 @@ crontab -e
 
 For more info on how to setup job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto)
 
-#### Kubernetes CronJob
+### Kubernetes CronJob
 
 [Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) is a built in feature which allows jobs to be run on repeating schedule.
 
-##### Config
+#### Config
 
 Create a [Kubernetes Secret](https://kubernetes.io/docs/concepts/configuration/secret/) object to store the sensitive credentials for the backup script. A template can be seen in: [```templates/psql-backup-s3.secret.yaml```](templates/psql-backup-s3.secret.yaml)
 
@@ -146,11 +157,13 @@ Create a [Kubernetes ConfigMap](https://kubernetes.io/docs/concepts/configuratio
 
 Make sure to [apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the newly created to your cluster in the correct namespace.
 
-##### Create the CronJob
+#### Create the CronJob
 
 Create a [Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) object to run the backup job on a schedule. A template can be seen in: [```templates/psql-backup-s3.cronjob.yaml```](templates/psql-backup-s3.cronjob.yaml)
 
 [Apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the CronJob object to your cluster.
+
+The job should now run the backup script periodically as scheduled in the object definition.
 
 ## Restore
 
