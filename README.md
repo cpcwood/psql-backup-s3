@@ -11,8 +11,7 @@ Create a private Amazon AWS S3 bucket to store your database backups:
 
 ### Create IAM User
 
-Create an IAM in your AWS account with access to the S3 bucket created above: 
-
+Create an IAM in your AWS account with access to the S3 bucket created above:
 [https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html)
 
 The script requires, list, put, and delete access on the s3 bucket. So the S3 policy JSON attached to the IAM user might look like:
@@ -75,46 +74,27 @@ Here are the setup methods for two typical deployment types:
 
 ## Traditional VM
 
-### Copy script to system
+### Copy Script to Machine
 
-Copy script to system and make sure it is executable for the crontab user chmod:
+Copy script to machine and make sure it is executable for the crontab user:
 
 ```sh
-chmod 744 <filename>
+chmod 744 ./psql-backup-s3.sh
 ```
 
 ### Install Dependencies
 
-Install script dependencies on VM using package manager.
-#### GPG
+Install script dependencies on VM using package manager:
 
-Install [GPG](https://gnupg.org/) to encrypt backup files:
-
-```sh
-apk add gnupg
-```
-
-#### AWS-CLI
-
-Install AWS CLI tool to transfer backup to AWS S3:
-
-```sh
-apk add aws-cli
-```
-
-#### date
-
-Ensure date is GNU core utilities date, not included in alpine linux (busybox) by default:
-
-```sh
-apk add coreutils
-```
+- **GPG** - Install [GPG](https://gnupg.org/) to encrypt backup files: ```apk add gnupg```
+- **AWS-CLI** - Install AWS CLI tool to transfer backup to AWS S3: ```apk add aws-cli```
+- **date** - Ensure date is GNU core utilities date, not included in alpine linux (busybox) by default: ```apk add coreutils```
 
 ### Linux cron
 
-cron is a time-based job scheduler built into Linux, and it can be used to run processes on the system at scheduled times.
+cron is a time-based job scheduler built into Linux which is used to run processes on the system at scheduled times.
 
-### Config
+#### Config
 
 The backup script gets its configuration from environment variables. The variables required can be seen in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
 
@@ -148,7 +128,7 @@ For more info on how to setup job using crontab, checkout [ubuntu's guide here](
 
 ## Kubernetes CronJob
 
-[Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) is a built in feature which allows jobs to be run on repeating schedule.
+[Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) is a built in feature which allows jobs to be run in containers periodically.
 
 ### Config
 
@@ -156,13 +136,13 @@ Create a [Kubernetes Secret](https://kubernetes.io/docs/concepts/configuration/s
 
 Create a [Kubernetes ConfigMap](https://kubernetes.io/docs/concepts/configuration/configmap/) object to store the non-sensitive configuration details for the script. A template can be seen in: [```templates/psql-backup-s3.config.yaml```](templates/psql-backup-s3.config.yaml)
 
-Make sure to [apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the newly created to your cluster in the correct namespace.
+Make sure to [apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the newly created secret and config objects to your cluster in the correct namespace.
 
 ### Create the CronJob
 
-Create a [Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) object to run the backup job on a schedule. A template can be seen in: [```templates/psql-backup-s3.cronjob.yaml```](templates/psql-backup-s3.cronjob.yaml)
+Create a [Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) object to run the backup job on a schedule. A template can be seen in: [```templates/psql-backup-s3.cronjob.yaml```](templates/psql-backup-s3.cronjob.yaml). The [```Dockerfile```](Dockerfile) included in the repo will build a container image with the required dependencies to run the script. It can be pulled from dockerhub under the repository [```cpcwood/psql-backup-s3```](https://hub.docker.com/r/cpcwood/psql-backup-s3)
 
-[Apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the CronJob object to your cluster.
+[Apply](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/) the newly created CronJob object to your cluster.
 
 The job should now run the backup script periodically as scheduled in the object definition.
 
