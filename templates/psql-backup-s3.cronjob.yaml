@@ -1,3 +1,4 @@
+---
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
@@ -11,10 +12,9 @@ spec:
           containers:
             - name: psql-backup-s3-container
               image: cpcwood/psql-backup-s3:latest
-              restartPolicy: OnFailure
               envFrom:
                 - configMapRef:
-                  name: psql-backup-s3
+                    name: psql-backup-s3
               env:
                 - name: POSTGRES_USER
                   valueFrom:
@@ -36,4 +36,5 @@ spec:
                     secretKeyRef:
                       name: psql-backup-s3
                       key: AWS_SECRET_ACCESS_KEY
-            
+          restartPolicy: Never          
+---

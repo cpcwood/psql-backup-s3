@@ -56,9 +56,9 @@ Get public key id using list keys:
 gpg --list-keys
 ```
 
-Export public key and convert into string which can be used as env variable:
+Export public key:
 ```sh
-gpg --armor --export <your-email> | cat -e | sed 's/\$/\\n/g'
+gpg --armor --export <your-email>
 ```
 
 Export secret key to file and move to [secure storage](https://lwn.net/Articles/734767/).
@@ -112,7 +112,7 @@ chmod 700 psql-backup-s3.env
 
 It can then be sourced before the backup job in the crontab as shown below.
 
-#### Create the cron job
+#### Create the cron Job
 
 Add a new cron job using crontab. The job should periodically load the environment variables and then run the backup script. For example, to run the backup daily at 3.30am:
 
@@ -148,14 +148,13 @@ The job should now run the backup script periodically as scheduled in the object
 
 ## Restore
 
-Download encrypted db dump
-
-Import private key to gpg
-
-decrypt file using gpg
-
-restore db from dump using psql
-
+To restore backup:
+- Download the encrypted database dump from aws S3
+- Copy to machine containing private gpg key
+- Decrypt downloaded file using gpg: ```gpg --output <decrypted file name>.sql.bz2 --decrypt <downloaded file name>.sql.bz2.gpg```
+- Move to server hosting PostgreSQL database
+- Unzip decrypted file using bzip: ```bzip2 -d <decrypted file name>.sql.bz2```
+- Restore the database dump using the ```psql``` command, for details see the documentation on [backup dumps](https://www.postgresql.org/docs/current/backup-dump.html) for your version of PostgreSQL.
 
 ## License
 
