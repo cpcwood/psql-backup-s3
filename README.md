@@ -1,6 +1,6 @@
 # PSQL Database Backup to AWS S3
 
-Perform encrypted rotating backups of a PostgreSQL database using AWS S3 and Linux cron or Kubernetes CronJob. 
+Perform encrypted rotating backups of a PostgreSQL database stored in AWS S3 using Linux cron or Kubernetes CronJob.
 
 ## Setup AWS
 
@@ -44,24 +44,12 @@ On a separate (ideally air-gapped) machine, install GPG so encryption keys can b
 apk add gnupg
 ```
 
-Then create a public/private pair of GPG keys using [GPG](https://gnupg.org/). Using a public key to encrypt the backup on the server will help prevent the database backup being compromised if the environment variables in the backup script are leaked.
+Then create a public/private pair of GPG keys using [GPG](https://gnupg.org/). Using a public key to encrypt the backup on the server will help prevent the database backup being compromised if the environment variables used in the backup script are leaked.
 
-Generate key using email for ID:
-```sh
-gpg --gen-key
-```
-
-Get public key id using list keys:
-```sh
-gpg --list-keys
-```
-
-Export public key:
-```sh
-gpg --armor --export <your-email>
-```
-
-Export secret key to file and move to [secure storage](https://lwn.net/Articles/734767/).
+- Generate key using email for ID: ```gpg --gen-key```
+- Get public key id using list keys: ```gpg --list-keys```
+- Export public key: ```gpg --armor --export <your-email>```
+- Export secret key and move to [secure storage](https://lwn.net/Articles/734767/).
 
 ## Add to System
 
