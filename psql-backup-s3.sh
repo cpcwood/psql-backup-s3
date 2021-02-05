@@ -65,9 +65,3 @@ else
     echo "PSQL database backup: '$backup_name' failed"
     exit 1
 fi
-
-
-
-
-
-

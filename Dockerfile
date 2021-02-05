@@ -21,7 +21,3 @@ COPY --chown=docker:docker ./psql-backup-s3.sh .
 RUN chmod 744 ./psql-backup-s3.sh
 
 CMD ["./psql-backup-s3.sh"]
-
-
-
-
