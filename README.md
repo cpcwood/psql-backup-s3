@@ -6,13 +6,11 @@ Perform encrypted rotating backups of a PostgreSQL database stored in AWS S3 usi
 
 ### Create AWS S3 Bucket
 
-Create a private Amazon AWS S3 bucket to store your database backups: 
-[https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)
+Create a private Amazon AWS S3 bucket to store your database backups: [AWS 'create bucket' guide](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html).
 
 ### Create IAM User
 
-Create an IAM in your AWS account with access to the S3 bucket created above:
-[https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html)
+Create an IAM user in your AWS account with access to the S3 bucket created above: [AWS 'create user' guide](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html)
 
 The script requires, list, put, and delete access on the s3 bucket. So the S3 policy JSON attached to the IAM user might look like:
 
@@ -35,6 +33,8 @@ The script requires, list, put, and delete access on the s3 bucket. So the S3 po
     ]
 }
 ```
+
+Make sure to download or keep hold of the new user security credentials so you can add them to the backup script environment later.
 
 ## Create PGP Keys
 
@@ -75,7 +75,7 @@ chmod 744 ./psql-backup-s3.sh
 Install script dependencies on VM using package manager:
 
 - **GPG** - Install [GPG](https://gnupg.org/) to encrypt backup files: ```apk add gnupg```
-- **AWS-CLI** - Install AWS CLI tool to transfer backup to AWS S3: ```apk add aws-cli```
+- **AWS-CLI** - Install AWS CLI tool to transfer backup to AWS S3: ```apk add aws-cli``` or see [AWS guide](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html)
 - **date** - Ensure date is GNU core utilities date, not included in alpine linux (busybox) by default: ```apk add coreutils```
 
 ### Linux cron
@@ -109,7 +109,7 @@ crontab -e
 ```
 
 ```sh
-30 3 * * * . $HOME/psql-backup-s3/psql-backup-s3.env; $HOME/psql-backup-s3/psql-backup-s3.sh
+30 3 * * * . $HOME/psql-backup-s3/psql-backup-s3.env && $HOME/psql-backup-s3/psql-backup-s3.sh 2>&1 | logger -t psql-backup-s3
 ```
 
 For more info on how to setup job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto). [crontab guru](https://crontab.guru/) can be helpful for defining schedules.

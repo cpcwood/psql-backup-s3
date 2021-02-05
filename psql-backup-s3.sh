@@ -18,6 +18,9 @@ if [ -z "$GPG_KEY" ] || \
     exit 1
 fi
 
+# Make sure local bin in path
+export PATH=/usr/local/bin:$PATH
+
 # Import gpg public key from env
 echo "$GPG_KEY" | gpg --batch --import
 
