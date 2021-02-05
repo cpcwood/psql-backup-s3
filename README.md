@@ -112,7 +112,7 @@ crontab -e
 30 3 * * * . $HOME/psql-backup-s3/psql-backup-s3.env; $HOME/psql-backup-s3/psql-backup-s3.sh
 ```
 
-For more info on how to setup job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto)
+For more info on how to setup job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto). [crontab guru](https://crontab.guru/) can be helpful for defining schedules.
 
 ## Kubernetes CronJob
 
