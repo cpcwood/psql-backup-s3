@@ -1,6 +1,6 @@
 # PSQL Database Backup to AWS S3
 
-Perform encrypted rotating backups of a PostgreSQL database stored in AWS S3 using Linux cron or Kubernetes CronJob.
+Perform scheduled encrypted backups of a PostgreSQL database to AWS S3, in a virtual machine using Linux cron, or Kubernetes cluster using CronJob. The script provides the option to set a backup rotation period.
 
 ## Setup AWS
 
@@ -38,25 +38,23 @@ Make sure to download or keep hold of the new user security credentials so you c
 
 ## Create PGP Keys
 
-On a separate (ideally air-gapped) machine, install GPG so encryption keys can be generated:
+On a separate (ideally air-gapped) machine, install [GPG](https://gnupg.org/) so encryption keys can be generated:
 
 ```sh
 apk add gnupg
 ```
 
-Then create a public/private pair of GPG keys using [GPG](https://gnupg.org/). Using a public key to encrypt the backup on the server will help prevent the database backup being compromised if the environment variables used in the backup script are leaked.
+Then create a pair of public and private encryption keys. Using public-key cryptography to encrypt the backup on the server will help prevent the database backup from being compromised if the environment variables are leaked.
 
-- Generate key using email for ID: ```gpg --gen-key```
-- Get public key id using list keys: ```gpg --list-keys```
-- Export public key: ```gpg --armor --export <your-email>```
-- Export secret key and move to [secure storage](https://lwn.net/Articles/734767/).
+- Generate a keypair using your email for ID: ```gpg --gen-key```
+- Export the public key: ```gpg --armor --export <your-email>```
+- Export the secret key and move to [secure storage](https://lwn.net/Articles/734767/).
 
-## Add to System
+## Deploy
 
-Depending on your deployment setup, there will different ways run the backup script on a regular interval. 
+Depending on your deployment setup, there will be different ways to deploy the script to run the backup job regularly.
 
 Here are the setup methods for two typical deployment types:
-
 - Traditional VM - Linux cron
 - Kubernetes - CronJob
 
@@ -80,29 +78,29 @@ Install script dependencies on VM using package manager:
 
 ### Linux cron
 
-cron is a time-based job scheduler built into Linux which is used to run processes on the system at scheduled times.
+cron is a time-based job scheduler built into Linux which runs processes on the system at scheduled times.
 
 #### Config
 
 The backup script gets its configuration from environment variables. The variables required can be seen in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
 
-cron jobs do not inherit the same environment as a job run from the command line, instead their default environment is from ```/etc/environment```, read more about why in [this IBM article](https://www.ibm.com/support/pages/cron-environment-and-cron-job-failures). Therefore, the environment variables required for the backup script's config need to be loaded specially in the job definition.
+cron jobs do not inherit the same environment as a job run from the command line. Instead, their default environment is from ```/etc/environment```, read more about why in [this IBM article](https://www.ibm.com/support/pages/cron-environment-and-cron-job-failures). Therefore, load the environment variables required for the backup script in the job definition.
 
 One way to do this <i>source</i> a shell script using the ["dot" command](https://tldp.org/LDP/abs/html/special-chars.html#DOTREF) in the crontab.
 
-First create the script containing the environment exports, example in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
+First, create a script exporting the required environment variables, example in [```templates/psql-backup-s3.env```](/templates/psql-backup-s3.env).
 
-Since it contains credentials, ensure it can only be read by the crontab user:
+Since it contains credentials, ensure the only the crontab user can only access it:
 
 ```sh
 chmod 700 psql-backup-s3.env
 ```
 
-It can then be sourced before the backup job in the crontab as shown below.
+It can then be sourced before the backup job in the crontab, as shown below.
 
 #### Create the cron Job
 
-Add a new cron job using crontab. The job should periodically load the environment variables and then run the backup script. For example, to run the backup daily at 3.30am:
+Add a new cron job using crontab. The job should periodically load the environment variables and then run the backup script. For example, to run the backup daily at 3.30 am:
 
 ```sh
 crontab -e
@@ -111,12 +109,11 @@ crontab -e
 ```sh
 30 3 * * * . $HOME/psql-backup-s3/psql-backup-s3.env && $HOME/psql-backup-s3/psql-backup-s3.sh 2>&1 | logger -t psql-backup-s3
 ```
-
-For more info on how to setup job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto). [crontab guru](https://crontab.guru/) can be helpful for defining schedules.
+For more info on setting up a job using crontab, checkout [ubuntu's guide here](https://help.ubuntu.com/community/CronHowto). [crontab guru](https://crontab.guru/) can be helpful for defining schedules.
 
 ## Kubernetes CronJob
 
-[Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) is a built in feature which allows jobs to be run in containers periodically.
+[Kubernetes CronJob](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/) is a built-in feature which allows jobs to be run in containers periodically.
 
 ### Config
 
@@ -138,7 +135,7 @@ The job should now run the backup script periodically as scheduled in the object
 
 To restore backup:
 - Download the encrypted database dump from aws S3
-- Copy to machine containing private gpg key
+- Copy to the machine containing the private gpg key
 - Decrypt downloaded file using gpg: ```gpg --output <decrypted file name>.sql.bz2 --decrypt <downloaded file name>.sql.bz2.gpg```
 - Move to server hosting PostgreSQL database
 - Unzip decrypted file using bzip: ```bzip2 -d <decrypted file name>.sql.bz2```
