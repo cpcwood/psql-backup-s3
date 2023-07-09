@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
             - name: psql-backup-s3-container
-              image: cpcwood/psql-backup-s3:latest
+              image: cpcwood/psql-backup-s3:1.0.1
               envFrom:
                 - configMapRef:
                     name: psql-backup-s3
