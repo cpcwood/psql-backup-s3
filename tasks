@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export IMAGE_NAME="cpcwood/psql-backup-s3"
+export IMAGE_TAG="1.0.1"
+
+function build {
+  docker build \
+    --progress=plain \
+    --tag "$IMAGE_NAME:$IMAGE_TAG" \
+    .
+}
+
+function push {
+  docker push "$IMAGE_NAME:$IMAGE_TAG"
+}
+
+if [[ ! $(type -t "$1") == function ]]; then
+  echo "Invalid command entered"
+  exit 1
+fi
+
+TIMEFORMAT="Task completed in %3lR"
+time "${@:-default}"

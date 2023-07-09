@@ -1,6 +1,7 @@
-FROM alpine:3.13
+FROM alpine:3.18
 
-RUN apk --update --no-cache add postgresql-client \
+RUN apk --update --no-cache add \
+    postgresql-client \
     gnupg \
     aws-cli \
     coreutils
@@ -8,9 +9,9 @@ RUN apk --update --no-cache add postgresql-client \
 ENV APP_HOME=/opt/app
 
 RUN addgroup -S docker && \
-  adduser -S -G docker docker && \
-  mkdir -p $APP_HOME && \
-  chown docker:docker $APP_HOME
+    adduser -S -G docker docker && \
+    mkdir -p $APP_HOME && \
+    chown docker:docker $APP_HOME
 
 USER docker
 
